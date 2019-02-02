@@ -2,6 +2,7 @@ package xzou.RPC_tiny.provider.app;
 
 import java.io.IOException;
 import java.io.ObjectInputStream;
+import java.io.ObjectOutputStream;
 import java.net.ServerSocket;
 import java.net.Socket;
 
@@ -10,13 +11,14 @@ import org.slf4j.LoggerFactory;
 
 import xzou.RPC_tiny.provider.service.Calculator;
 import xzou.RPC_tiny.provider.service.CalculatorImpl;
+import xzou.RPC_tiny.request.CalculateRpcRequest;
 
 public class ProviderApp {
 	private static Logger log = LoggerFactory.getLogger(ProviderApp.class);
 	
 	private Calculator calculator = new CalculatorImpl();
 	
-	public static void main(String[] args) {
+	public static void main(String[] args) throws IOException {
 		new ProviderApp().run();
 	} 
 	
@@ -39,9 +41,25 @@ public class ProviderApp {
 					
 					// call the service
 					int result = 0;
+					if(object instanceof CalculateRpcRequest) {
+						CalculateRpcRequest calculateRpcRequest = (CalculateRpcRequest) object;
+						if(calculateRpcRequest.getMethod().equals("add")) {
+							result = calculator.add(calculateRpcRequest.getA(), calculateRpcRequest.getB());
+						} else {
+							throw new UnsupportedOperationException();
+						}
+					}
 					
+					ObjectOutputStream objectOutputStream = new ObjectOutputStream(socket.getOutputStream());
+					objectOutputStream.writeObject(new Integer(result));
+				} catch (Exception e) {
+					log.error("fail", e);
+				} finally {
+					socket.close();
 				}
 			}
+		} finally {
+			listerner.close();
 		}
 	}
 }
